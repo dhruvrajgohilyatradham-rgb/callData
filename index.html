@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<title>Call Ledger</title>
+<style>
+  :root{
+    /* ---- Light theme (default) — vintage travel-poster palette ---- */
+    --bg:#F2EFE3;
+    --surface:#FFFFFF;
+    --surface-hover:#EAE5D2;
+    --border:#DDD5B9;
+    --text:#1C2621;
+    --text-muted:#6D7A6C;
+    --accent:#3E6B52;
+    --accent-rgb:62,107,82;
+    --accent-light:#5C8F71;
+    --accent-dim:#294A37;
+    --danger:#A8432E;
+    --danger-rgb:168,67,46;
+    --danger-light:#8A3627;
+    --success:#A9782E;
+    --success-rgb:169,120,46;
+    --shadow-sm: 0 1px 2px rgba(28,38,33,0.08);
+    --shadow-md: 0 12px 26px -14px rgba(28,38,33,0.22), 0 2px 6px -2px rgba(28,38,33,0.09);
+    --shadow-lg: 0 22px 44px -20px rgba(28,38,33,0.28);
+    color-scheme: light;
+
+    /* ---- constant tokens: the physical ticket "paper" never changes with theme ---- */
+    --paper:#F8F1DC;
+    --paper-dim:#E7DAB3;
+    --paper-muted:#8C7F5A;
+    --paper-placeholder:#A99B72;
+    --on-accent:#152219;
+
+    --font-display: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+  }
+  :root:not([data-theme="light"]){
+    --bg:#F2EFE3; --surface:#FFFFFF; --surface-hover:#EAE5D2; --border:#DDD5B9;
+    --text:#1C2621; --text-muted:#6D7A6C;
+    --accent:#3E6B52; --accent-rgb:62,107,82; --accent-light:#5C8F71; --accent-dim:#294A37;
+    --danger:#A8432E; --danger-rgb:168,67,46; --danger-light:#8A3627;
+    --success:#A9782E; --success-rgb:169,120,46;
+    --shadow-sm: 0 1px 2px rgba(28,38,33,0.08);
+    --shadow-md: 0 12px 26px -14px rgba(28,38,33,0.22), 0 2px 6px -2px rgba(28,38,33,0.09);
+    --shadow-lg: 0 22px 44px -20px rgba(28,38,33,0.28);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#101B14; --surface:#182920; --surface-hover:#20362A; --border:#2E4838;
+      --text:#EDEADB; --text-muted:#9AAB9C;
+      --accent:#67A484; --accent-rgb:103,164,132; --accent-light:#8FC4A6; --accent-dim:#3E7259;
+      --danger:#D9805F; --danger-rgb:217,128,95; --danger-light:#E89D7C;
+      --success:#D3A657; --success-rgb:211,166,87;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+      --shadow-md: 0 14px 30px -14px rgba(0,0,0,0.55);
+      --shadow-lg: 0 22px 44px -18px rgba(0,0,0,0.65);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#101B14; --surface:#182920; --surface-hover:#20362A; --border:#2E4838;
+    --text:#EDEADB; --text-muted:#9AAB9C;
+    --accent:#67A484; --accent-rgb:103,164,132; --accent-light:#8FC4A6; --accent-dim:#3E7259;
+    --danger:#D9805F; --danger-rgb:217,128,95; --danger-light:#E89D7C;
+    --success:#D3A657; --success-rgb:211,166,87;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+    --shadow-md: 0 14px 30px -14px rgba(0,0,0,0.55);
+    --shadow-lg: 0 22px 44px -18px rgba(0,0,0,0.65);
+    color-scheme: dark;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  html{-webkit-tap-highlight-color:transparent;}
+  body::before{
+    content:"";
+    position:fixed;
+    top:0; left:0; right:0;
+    height:3px;
+    background:linear-gradient(90deg, var(--accent), var(--success), var(--accent-dim));
+    z-index:50;
+  }
+  body{
+    background:
+      radial-gradient(ellipse 60% 40% at 12% 0%, rgba(var(--accent-rgb),0.07), transparent 60%),
+      radial-gradient(ellipse 55% 45% at 100% 100%, rgba(var(--success-rgb),0.06), transparent 60%),
+      var(--bg);
+    background-attachment:fixed;
+    color:var(--text);
+    font-family:var(--font-body);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    transition:background-color 0.25s ease, color 0.25s ease;
+  }
+  ::selection{background:var(--accent); color:var(--on-accent);}
+  a{color:var(--accent);}
+
+  @media (prefers-reduced-motion: no-preference){
+    .wrap{animation:riseIn 0.5s ease both;}
+  }
+  @keyframes riseIn{
+    from{opacity:0; transform:translateY(8px);}
+    to{opacity:1; transform:translateY(0);}
+  }
+
+  input:focus-visible, select:focus-visible, button:focus-visible{
+    outline:none;
+    box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.35);
+    border-radius:6px;
+  }
+  .ticket-field input:focus{outline:none;}
+  .ticket-field:focus-within{background:rgba(var(--accent-rgb),0.07);}
+
+  .wrap{
+    max-width:960px;
+    margin:0 auto;
+    padding:32px 20px 80px;
+  }
+
+  /* ---------- Header ---------- */
+  header.app-head{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding-bottom:24px;
+    margin-bottom:30px;
+    border-bottom:1px solid transparent;
+    border-image: linear-gradient(90deg, var(--border), transparent 88%) 1;
+    flex-wrap:wrap;
+  }
+  .brand-mark{
+    width:44px;height:44px;flex:none;
+    border-radius:50%;
+    background:linear-gradient(155deg,var(--accent-light),var(--accent-dim));
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 3px var(--surface), 0 0 0 4px var(--border), var(--shadow-sm);
+  }
+  .brand-mark svg{width:22px;height:22px;fill:var(--on-accent);}
+  .app-head h1{
+    font-family:var(--font-display);
+    font-size:1.65rem;
+    font-weight:700;
+    margin:0;
+    letter-spacing:0.2px;
+    color:var(--text);
+  }
+  .app-head p{
+    margin:3px 0 0;
+    font-size:0.84rem;
+    color:var(--text-muted);
+    letter-spacing:0.1px;
+  }
+  .head-controls{
+    margin-left:auto;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .theme-toggle{
+    width:38px;height:38px;
+    border-radius:50%;
+    border:1px solid var(--border);
+    background:var(--surface);
+    color:var(--text-muted);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    flex:none;
+    box-shadow:var(--shadow-sm);
+    transition:border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  }
+  .theme-toggle:hover{border-color:var(--accent); color:var(--accent); transform:rotate(12deg);}
+  .theme-toggle svg{width:17px;height:17px;}
+  .tabs{
+    display:flex;
+    gap:2px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:3px;
+    box-shadow:var(--shadow-sm);
+  }
+  .tab-btn{
+    border:none;
+    background:transparent;
+    color:var(--text-muted);
+    font-family:var(--font-body);
+    font-size:0.85rem;
+    padding:8px 15px;
+    border-radius:9px;
+    cursor:pointer;
+    transition:background 0.15s ease, color 0.15s ease;
+    white-space:nowrap;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+  }
+  .tab-btn svg{width:14px;height:14px;flex:none;}
+  .tab-btn:hover:not(.active){color:var(--text);}
+  .tab-btn.active{
+    background:var(--accent);
+    color:var(--on-accent);
+    font-weight:600;
+  }
+
+  section{display:none;}
+  section.visible{display:block;}
+
+  /* ---------- Ticket / entry card ---------- */
+  .ticket{
+    position:relative;
+    background:
+      repeating-linear-gradient(0deg, rgba(18,33,58,0.02) 0 1px, transparent 1px 3px),
+      var(--paper);
+    color:var(--on-accent);
+    border-radius:18px;
+    display:grid;
+    grid-template-columns:1fr 1fr auto;
+    gap:0;
+    overflow:visible;
+    box-shadow:var(--shadow-md), 0 2px 0 rgba(255,255,255,0.5) inset;
+    transition:box-shadow 0.2s ease;
+  }
+  .ticket:focus-within{ box-shadow:var(--shadow-lg), 0 0 0 2px var(--accent); }
+  .ticket-field{
+    padding:20px 22px;
+    position:relative;
+  }
+  .ticket-field + .ticket-field{
+    border-left:2px dashed var(--paper-dim);
+  }
+  .ticket-field label{
+    display:block;
+    font-size:0.72rem;
+    color:var(--accent-dim);
+    margin-bottom:7px;
+    font-weight:600;
+    letter-spacing:0.15px;
+  }
+  .ticket-field input{
+    width:100%;
+    border:none;
+    background:transparent;
+    font-family:var(--font-mono);
+    font-size:1.05rem;
+    color:var(--on-accent);
+    outline:none;
+    padding:2px 0;
+  }
+  .ticket-field.comment input{font-family:var(--font-body); font-size:0.96rem;}
+  .ticket-field input::placeholder{color:var(--paper-placeholder);}
+
+  .ticket-action{
+    display:flex;
+    align-items:center;
+    padding:0 20px;
+    background:linear-gradient(180deg, var(--accent-light), var(--accent));
+    border-radius:0 16px 16px 0;
+    transition:filter 0.15s ease;
+  }
+  .ticket-action:hover{filter:brightness(1.05);}
+  .ticket-action button{
+    border:none;
+    background:transparent;
+    color:var(--on-accent);
+    font-family:var(--font-body);
+    font-weight:700;
+    font-size:0.96rem;
+    cursor:pointer;
+    padding:11px 4px;
+    white-space:nowrap;
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+  .ticket-hint{
+    grid-column:1 / -1;
+    padding:0 22px 14px;
+    font-size:0.75rem;
+    color:var(--paper-muted);
+  }
+
+  .perforation{
+    grid-column:1 / -1;
+    height:14px;
+    background-image: radial-gradient(circle, var(--bg) 0 4px, transparent 4.5px);
+    background-size: 18px 14px;
+    background-repeat: repeat-x;
+    background-position: 4px center;
+  }
+
+  .suggest-box{
+    position:absolute;
+    left:0; right:0; top:calc(100% + 4px);
+    background:var(--paper);
+    border:1px solid var(--paper-dim);
+    border-radius:10px;
+    box-shadow:0 18px 32px -12px rgba(20,20,10,0.4);
+    max-height:230px;
+    overflow-y:auto;
+    z-index:30;
+    display:none;
+  }
+  .ticket-field .suggest-box{ left:22px; right:14px; top:calc(100% - 2px); border-radius:0 0 10px 10px; }
+  .suggest-box.open{display:block;}
+  .suggest-item{
+    padding:9px 14px;
+    font-size:0.88rem;
+    color:var(--on-accent);
+    cursor:pointer;
+  }
+  .suggest-item.active{background:var(--accent); color:var(--on-accent);}
+  .suggest-empty{padding:10px 14px; font-size:0.82rem; color:var(--paper-muted);}
+
+  /* ---------- Toolbar ---------- */
+  .toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:flex-end;
+    margin:28px 0 8px;
+  }
+  .toolbar .field-group{
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+  }
+  .toolbar .field-group label{
+    font-size:0.68rem;
+    color:var(--text-muted);
+    padding-left:2px;
+  }
+  .toolbar select{
+    background:var(--surface);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-family:var(--font-body);
+    font-size:0.85rem;
+    padding:9px 12px;
+    border-radius:9px;
+    outline:none;
+    transition:border-color 0.15s ease;
+  }
+  .toolbar select:hover{border-color:var(--accent-dim);}
+  .toolbar select{flex:1 1 38px;}
+  .toolbar select#hourFilter{flex:1 1 38px; font-family:var(--font-mono);}
+  .btn{
+    border:1px solid var(--border);
+    background:var(--surface);
+    color:var(--text);
+    font-family:var(--font-body);
+    font-size:0.82rem;
+    padding:9px 14px;
+    border-radius:9px;
+    cursor:pointer;
+    white-space:nowrap;
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    transition:border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+  }
+  .btn svg{width:14px;height:14px;flex:none;}
+  .btn:hover{border-color:var(--accent); transform:translateY(-1px);}
+  .btn:active{transform:translateY(0);}
+  .btn.primary{background:var(--accent); color:var(--on-accent); border-color:var(--accent); font-weight:600;}
+  .btn.primary:hover{filter:brightness(1.06);}
+  .btn.danger{color:var(--danger-light); border-color:var(--danger);}
+  .btn.danger:hover{background:rgba(var(--danger-rgb),0.1);}
+  .btn.ghost{background:transparent; border-color:transparent; color:var(--text-muted); padding:9px 8px;}
+  .btn.ghost:hover{color:var(--accent); transform:none;}
+  input[type=file]{display:none;}
+
+  .meta-line{
+    font-size:0.78rem;
+    color:var(--text-muted);
+    margin:10px 0 14px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  /* ---------- Manifest / follow-up list ---------- */
+  .manifest{
+    border:1px solid var(--border);
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow:var(--shadow-sm);
+  }
+  .row{
+    border-bottom:1px solid var(--border);
+    background:var(--surface);
+  }
+  .row:last-child{border-bottom:none;}
+  .row-main{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:15px 17px;
+    cursor:pointer;
+    transition:background 0.15s ease;
+  }
+  .row-main:hover{background:var(--surface-hover);}
+  .row-phone{
+    font-family:var(--font-mono);
+    font-size:0.98rem;
+    color:var(--text);
+    min-width:150px;
+  }
+  .copy-btn{
+    border:1px solid var(--border);
+    background:var(--bg);
+    color:var(--text-muted);
+    border-radius:7px;
+    width:26px;height:26px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    flex:none;
+    transition:border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  }
+  .copy-btn svg{width:13px;height:13px;}
+  .copy-btn:hover{border-color:var(--accent); color:var(--accent);}
+  .copy-btn.copied{border-color:var(--success); color:var(--success);}
+  .copy-btn:active{transform:scale(0.92);}
+  .row-tag{
+    background:rgba(var(--accent-rgb),0.12);
+    border:1px solid rgba(var(--accent-rgb),0.32);
+    color:var(--accent-dim);
+    font-size:0.76rem;
+    padding:4px 11px;
+    border-radius:20px;
+    max-width:280px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-weight:600;
+  }
+  .row-count{
+    font-size:0.76rem;
+    color:var(--text-muted);
+  }
+  .row-time{
+    margin-left:auto;
+    font-size:0.76rem;
+    color:var(--text-muted);
+    font-family:var(--font-mono);
+  }
+  .row-chevron{
+    color:var(--text-muted);
+    transition:transform 0.15s ease, color 0.15s ease;
+    flex:none;
+  }
+  .row.open .row-chevron{transform:rotate(90deg); color:var(--accent);}
+  .row-detail{
+    display:none;
+    padding:4px 17px 17px 17px;
+    background:var(--bg);
+  }
+  .row.open .row-detail{display:block;}
+  .timeline-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:9px 0;
+    border-bottom:1px dashed var(--border);
+    font-size:0.85rem;
+  }
+  .timeline-item:last-child{border-bottom:none;}
+  .timeline-ts{
+    font-family:var(--font-mono);
+    color:var(--text-muted);
+    font-size:0.75rem;
+    min-width:135px;
+  }
+  .timeline-tag{flex:1; color:var(--text);}
+  .fu-badge{
+    font-size:0.62rem;
+    background:rgba(var(--success-rgb),0.16);
+    color:var(--success);
+    border:1px solid rgba(var(--success-rgb),0.4);
+    font-family:var(--font-mono);
+    padding:2px 7px;
+    border-radius:10px;
+    white-space:nowrap;
+  }
+  .timeline-del{
+    background:none;border:none;color:var(--danger-light);
+    cursor:pointer; font-size:0.78rem;
+    opacity:0.75;
+  }
+  .timeline-del:hover{opacity:1;}
+  .row-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    padding-top:9px;
+  }
+  .empty-state{
+    text-align:center;
+    padding:54px 20px;
+    color:var(--text-muted);
+    font-size:0.92rem;
+  }
+  .empty-state strong{display:block; color:var(--text); font-family:var(--font-display); font-size:1.15rem; margin-bottom:7px;}
+
+  /* ---------- Follow-up add form ---------- */
+  .follow-add{
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
+    margin:14px 0 4px;
+    padding-top:14px;
+    border-top:1px solid var(--border);
+  }
+  .follow-add-field{
+    position:relative;
+    flex:1;
+  }
+  .follow-add-field input{
+    width:100%;
+    background:var(--surface);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-family:var(--font-body);
+    font-size:0.86rem;
+    padding:10px 12px;
+    border-radius:9px;
+    outline:none;
+  }
+  .follow-add-field input:focus{border-color:var(--accent);}
+
+  /* ---------- Analysis ---------- */
+  .stat-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:12px;
+    margin-bottom:22px;
+  }
+  .stat-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:13px;
+    padding:17px 19px;
+    box-shadow:var(--shadow-sm);
+  }
+  .stat-card .num{
+    font-family:var(--font-display);
+    font-size:1.75rem;
+    color:var(--accent);
+  }
+  .stat-card .lbl{
+    font-size:0.76rem;
+    color:var(--text-muted);
+    margin-top:2px;
+  }
+  .panel{border:1px solid var(--border); border-radius:13px; padding:19px 21px; background:var(--surface); margin-bottom:20px; box-shadow:var(--shadow-sm);}
+  .panel h3{margin:0 0 3px; font-family:var(--font-display); font-size:1.08rem; font-weight:700; color:var(--text);}
+  .panel .panel-sub{font-size:0.78rem; color:var(--text-muted); margin:0 0 16px;}
+  .bar-row{margin-bottom:12px;}
+  .bar-label{
+    display:flex; justify-content:space-between;
+    font-size:0.82rem; color:var(--text); margin-bottom:4px;
+  }
+  .bar-label span.n{color:var(--text-muted); font-family:var(--font-mono); font-size:0.78rem;}
+  .bar-track{background:var(--bg); border-radius:6px; height:8px; overflow:hidden;}
+  .bar-fill{background:linear-gradient(90deg,var(--accent-dim),var(--accent)); height:100%; border-radius:6px;}
+
+  .hour-chart{
+    display:flex;
+    align-items:flex-end;
+    gap:4px;
+    height:130px;
+    padding-top:8px;
+  }
+  .hour-col{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    height:100%;
+    position:relative;
+    cursor:pointer;
+    border-radius:6px;
+    padding:2px 0;
+  }
+  .hour-col:hover{background:rgba(var(--accent-rgb),0.1);}
+  .hour-col.active-hour{background:rgba(var(--accent-rgb),0.18);}
+  .hour-bar{
+    width:100%;
+    max-width:16px;
+    background:linear-gradient(180deg, var(--accent-light), var(--accent-dim));
+    border-radius:3px 3px 0 0;
+    min-height:2px;
+    transition:height 0.25s ease;
+  }
+  .hour-col.active-hour .hour-bar{background:linear-gradient(180deg, var(--success), var(--accent-dim));}
+  .hour-label{
+    font-size:0.62rem;
+    color:var(--text-muted);
+    margin-top:6px;
+    font-family:var(--font-mono);
+  }
+  .hour-col.active-hour .hour-label{color:var(--accent);}
+  .hour-col[data-tip]:hover::after{
+    content:attr(data-tip);
+    position:absolute;
+    bottom:100%;
+    left:50%;
+    transform:translateX(-50%);
+    background:var(--surface);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:3px 7px;
+    border-radius:6px;
+    font-size:0.68rem;
+    white-space:nowrap;
+    margin-bottom:5px;
+    font-family:var(--font-mono);
+    z-index:5;
+    box-shadow:var(--shadow-sm);
+  }
+
+  .follow-analysis-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 0;
+    border-bottom:1px dashed var(--border);
+    font-size:0.85rem;
+  }
+  .follow-analysis-row:last-child{border-bottom:none;}
+  .fa-phone{font-family:var(--font-mono); color:var(--text); min-width:150px; display:flex; align-items:center; gap:8px;}
+  .panel-head{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  .panel-head .panel-titles{flex:1; min-width:180px;}
+  .fa-count{
+    background:rgba(var(--success-rgb),0.15);
+    color:var(--success);
+    border:1px solid rgba(var(--success-rgb),0.35);
+    font-size:0.72rem;
+    padding:2px 9px;
+    border-radius:12px;
+    flex:none;
+  }
+  .fa-tag{color:var(--text-muted); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .fa-time{color:var(--text-muted); font-family:var(--font-mono); font-size:0.75rem; flex:none;}
+
+  footer.note{
+    margin-top:32px;
+    font-size:0.76rem;
+    color:var(--text-muted);
+    text-align:center;
+    line-height:1.7;
+  }
+
+  @media (max-width:680px){
+    .ticket{grid-template-columns:1fr;}
+    .ticket-field + .ticket-field{border-left:none; border-top:2px dashed var(--paper-dim);}
+    .ticket-action{border-radius:0 0 16px 16px; justify-content:center; padding:15px;}
+    .perforation{display:none;}
+    .row-main{flex-wrap:wrap;}
+    .row-time{margin-left:0; width:100%;}
+    .hour-label{display:none;}
+    .hour-col:nth-child(3n+1) .hour-label{display:block;}
+    .follow-add{flex-direction:column;}
+    .head-controls{margin-left:0; width:100%; justify-content:space-between;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="app-head">
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24"><path d="M2 16l20-7-7 20-3-8-8-3z"/></svg>
+    </div>
+    <div>
+      <h1>Call Ledger</h1>
+      <p>Customer calls, tagged and tracked — kept only on this device</p>
+    </div>
+    <div class="head-controls">
+      <button class="theme-toggle" id="themeToggle" title="Switch theme" type="button"></button>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="log">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+          Log
+        </button>
+        <button class="tab-btn" data-tab="followup">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.68 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.32 1.85.55 2.81.68A2 2 0 0122 16.92z"/></svg>
+          Follow-up
+        </button>
+        <button class="tab-btn" data-tab="analysis">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          Analysis
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= LOG TAB ================= -->
+  <section id="tab-log" class="visible">
+
+    <div class="ticket">
+      <div class="ticket-field">
+        <label for="phoneInput">Customer number</label>
+        <input id="phoneInput" type="text" inputmode="tel" placeholder="e.g. 98765 43210" autocomplete="off">
+      </div>
+      <div class="ticket-field comment">
+        <label for="commentInput">Comment</label>
+        <input id="commentInput" type="text" placeholder="Search a comment…" autocomplete="off">
+        <div class="suggest-box" id="suggestBox"></div>
+      </div>
+      <div class="ticket-action">
+        <button id="addBtn" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Add entry
+        </button>
+      </div>
+      <div class="ticket-hint">Type to search the comment list, use ↑ ↓ to pick, Enter to add. Both fields clear after each entry so you're ready for the next call.</div>
+      <div class="perforation"></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="field-group">
+        <label for="filterTag">Comment</label>
+        <select id="filterTag"><option value="">All comments</option></select>
+      </div>
+      <div class="field-group">
+        <label for="hourFilter">Hour</label>
+        <select id="hourFilter"><option value="">Any hour</option></select>
+      </div>
+      <button class="btn ghost" id="clearFiltersBtn" title="Clear all filters">Reset</button>
+      <div style="flex:1 1 auto;"></div>
+      <button class="btn" id="exportBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+        Export file
+      </button>
+      <button class="btn" id="importBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 0l-4 4m4-4l4 4M5 21h14"/></svg>
+        Import file
+      </button>
+      <input type="file" id="importFile" accept="application/json">
+      <button class="btn danger" id="clearBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0l1 13h8l1-13"/></svg>
+        Clear all
+      </button>
+    </div>
+    <div class="meta-line" id="metaLine"></div>
+
+    <div class="manifest" id="manifest"></div>
+
+  </section>
+
+  <!-- ================= FOLLOW-UP TAB ================= -->
+  <section id="tab-followup">
+
+    <div class="ticket">
+      <div class="ticket-field">
+        <label for="followPhoneInput">Customer number</label>
+        <input id="followPhoneInput" type="text" inputmode="tel" placeholder="e.g. 98765 43210" autocomplete="off">
+      </div>
+      <div class="ticket-field comment">
+        <label for="followTopCommentInput">Comment</label>
+        <input id="followTopCommentInput" type="text" placeholder="Search a comment…" autocomplete="off">
+        <div class="suggest-box" id="followTopSuggestBox"></div>
+      </div>
+      <div class="ticket-action">
+        <button id="followTopAddBtn" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Log follow-up
+        </button>
+      </div>
+      <div class="ticket-hint">Same searchable comment list as the Log tab. Type a number here to log a follow-up straight away — old comments for that customer stay untouched, this just adds a new one.</div>
+      <div class="perforation"></div>
+    </div>
+
+    <div class="toolbar" style="margin-top:22px;">
+      <div class="field-group">
+        <label for="followFilterTag">Follow up on customers who said</label>
+        <select id="followFilterTag"><option value="">All comments</option></select>
+      </div>
+    </div>
+    <div class="meta-line" id="followMetaLine"></div>
+    <div class="manifest" id="followManifest"></div>
+  </section>
+
+  <!-- ================= ANALYSIS TAB ================= -->
+  <section id="tab-analysis">
+    <div class="panel-head" style="margin-bottom:16px;">
+      <div class="panel-titles">
+        <div class="meta-line" style="margin:0;">Use the Comment / Hour filters on the Log tab to narrow this whole page, then copy a clean summary for your team lead.</div>
+      </div>
+      <button class="btn primary" id="copyReportBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 4H6a1 1 0 00-1 1v15a1 1 0 001 1h12a1 1 0 001-1V5a1 1 0 00-1-1h-3"/></svg>
+        Copy report
+      </button>
+    </div>
+    <div class="stat-grid" id="statGrid"></div>
+
+    <div class="panel">
+      <h3>Activity by hour</h3>
+      <p class="panel-sub" id="hourSub">When calls get logged through the day — click a bar or use the Hour filter on the Log tab to zoom into one hour.</p>
+      <div class="hour-chart" id="hourChart"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Comments by frequency</h3>
+      <p class="panel-sub">Same Comment / Hour filters as the Log tab.</p>
+      <div id="barList"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Follow-ups taken</h3>
+      <p class="panel-sub" id="followAnalysisSub">Customers you called back on, logged from the Follow-up tab.</p>
+      <div id="followUpAnalysisList"></div>
+    </div>
+  </section>
+
+  <footer class="note">
+    Everything you enter stays in this browser's local storage — nothing is sent anywhere.<br>
+    Export regularly to a file to back up and free up space, then re-import anytime to keep analysing old data.
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     THEME TOGGLE — light / dark, remembered per browser.
+     Falls back to the system preference until the user picks one.
+  ============================================================ */
+  const THEME_KEY = "callLedger_theme_v1";
+  const SUN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M4.22 4.22l1.77 1.77M18 18l1.78 1.78M2 12h2.5M19.5 12H22M4.22 19.78L6 18M18 6l1.78-1.78"/></svg>';
+  const MOON_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>';
+  const themeToggleBtn = document.getElementById("themeToggle");
+
+  function systemPrefersDark(){
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  function currentTheme(){
+    const saved = localStorage.getItem(THEME_KEY);
+    if(saved === "light" || saved === "dark") return saved;
+    return systemPrefersDark() ? "dark" : "light";
+  }
+  function applyTheme(theme, persist){
+    document.documentElement.setAttribute("data-theme", theme);
+    if(themeToggleBtn){
+      themeToggleBtn.innerHTML = theme === "dark" ? SUN_ICON : MOON_ICON;
+      themeToggleBtn.title = theme === "dark" ? "Switch to light mode" : "Switch to dark mode";
+    }
+    if(persist) localStorage.setItem(THEME_KEY, theme);
+  }
+  applyTheme(currentTheme(), false);
+  if(themeToggleBtn){
+    themeToggleBtn.addEventListener("click", ()=>{
+      const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      applyTheme(next, true);
+    });
+  }
+  if(window.matchMedia){
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e)=>{
+      if(!localStorage.getItem(THEME_KEY)) applyTheme(e.matches ? "dark" : "light", false);
+    });
+  }
+
+
+  /* ============================================================
+     COMMENT LIST — edit this array to add / rename / remove tags.
+     Everything else (search, filter, analysis) reads from here.
+  ============================================================ */
+  const COMMENT_TAGS = [
+    "After booking Query call",
+    "Already Call Done",
+    "Book soon",
+    "Booked from another site",
+    "Booking done from YD",
+    "Budget issue",
+    "Call Forwarding is on",
+    "Cancelation Call & Modification",
+    "Check in Check out time issue",
+    "Customer busy call later & they will call back",
+    "Customer cut the call",
+    "Directly Cut call",
+    "ECS Call",
+    "Friends and option suggest and book soon",
+    "Friends Male Female",
+    "Group Booking",
+    "He/She want to book in darmashala that is not available in site",
+    "Just inquire",
+    "Language Barrier",
+    "Manager number",
+    "No proper Answer",
+    "Not Available",
+    "Not interested",
+    "Option share in WhatsApp they will book soon",
+    "Option share in WhatsApp They will check",
+    "Option share in WhatsApp with low interest of customer",
+    "Other agents talk but don't share option so i share",
+    "Plan Cancel",
+    "Plan not confirm",
+    "Processing",
+    "Same Day",
+    "Same day, i share option and they will check",
+    "Single person",
+    "Take on call booking",
+    "Want only offline",
+    "Want to talk with Other agent",
+    "Want puja Info",
+    "Option share with budget issue",
+    "Network issue",
+    "Same day not possible",
+    "Single person, suggest option",
+    "Want manager number only",
+    "Advance payment issue",
+    "Till now booking not open",
+    "Technical issue and suggeast option",
+    "They diract talk with manager and they will check",
+    "convenience charges issue",
+  ];
+
+  const STORAGE_KEY = "callLedger_entries_v1";
+
+  /* ---------------- storage helpers ---------------- */
+  function loadEntries(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){
+      console.error("Could not read local storage", e);
+      return [];
+    }
+  }
+  function saveEntries(entries){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    }catch(e){
+      alert("Could not save to local storage. It may be full — try exporting and clearing.");
+    }
+  }
+
+  let entries = loadEntries();
+  let openPhone = null;       // expanded row on Log tab
+  let followOpenPhone = null; // expanded row on Follow-up tab
+
+  /* ---------------- utils ---------------- */
+  function normPhone(p){ return p.replace(/\s+/g,"").trim(); }
+  function fmtDate(ts){
+    const d = new Date(ts);
+    return d.toLocaleDateString(undefined,{day:"2-digit",month:"short"}) + " " +
+           d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
+  }
+  function todayStr(){
+    const d = new Date();
+    const pad = n => String(n).padStart(2,"0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+  function isToday(ts){
+    return new Date(ts).toDateString() === new Date().toDateString();
+  }
+  function findEntry(phone){
+    return entries.find(e => e.phone === phone);
+  }
+  function hourLabel(h){
+    return h===0 ? "12 AM" : h<12 ? h+" AM" : h===12 ? "12 PM" : (h-12)+" PM";
+  }
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+  function matchTags(query, tag){
+    const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if(!words.length) return false;
+    const t = tag.toLowerCase();
+    return words.every(w => t.includes(w));
+  }
+  function findValidTag(text){
+    return COMMENT_TAGS.find(t => t.toLowerCase() === text.trim().toLowerCase());
+  }
+
+  /* ---------------- populate filter dropdowns ---------------- */
+  const filterTag = document.getElementById("filterTag");
+  const followFilterTag = document.getElementById("followFilterTag");
+  COMMENT_TAGS.forEach(tag=>{
+    const opt1 = document.createElement("option");
+    opt1.value = tag; opt1.textContent = tag;
+    filterTag.appendChild(opt1);
+    const opt2 = document.createElement("option");
+    opt2.value = tag; opt2.textContent = tag;
+    followFilterTag.appendChild(opt2);
+  });
+
+  const hourFilter = document.getElementById("hourFilter");
+  for(let h=0; h<24; h++){
+    const opt = document.createElement("option");
+    opt.value = String(h);
+    opt.textContent = hourLabel(h);
+    hourFilter.appendChild(opt);
+  }
+
+  /* ============================================================
+     MAIN ADD FORM (Log tab) — phone + comment autocomplete
+  ============================================================ */
+  const phoneInput = document.getElementById("phoneInput");
+  const commentInput = document.getElementById("commentInput");
+  const suggestBox = document.getElementById("suggestBox");
+  let suggestions = [];
+  let activeIndex = -1;
+
+  function renderSuggestions(){
+    const q = commentInput.value.trim();
+    if(!q){
+      suggestBox.classList.remove("open");
+      suggestBox.innerHTML = "";
+      suggestions = [];
+      return;
+    }
+    suggestions = COMMENT_TAGS.filter(tag => matchTags(q, tag));
+    activeIndex = suggestions.length ? 0 : -1;
+    paintSuggestions();
+  }
+  function paintSuggestions(){
+    if(!suggestions.length){
+      suggestBox.innerHTML = `<div class="suggest-empty">No matching comment. Try different words.</div>`;
+      suggestBox.classList.add("open");
+      return;
+    }
+    suggestBox.innerHTML = suggestions.map((tag,i)=>
+      `<div class="suggest-item${i===activeIndex?" active":""}" data-idx="${i}">${escapeHtml(tag)}</div>`
+    ).join("");
+    suggestBox.classList.add("open");
+  }
+  commentInput.addEventListener("input", renderSuggestions);
+  commentInput.addEventListener("focus", renderSuggestions);
+  commentInput.addEventListener("keydown", e=>{
+    if(!suggestBox.classList.contains("open")) return;
+    if(e.key === "ArrowDown"){
+      e.preventDefault();
+      if(suggestions.length){ activeIndex = (activeIndex+1) % suggestions.length; paintSuggestions(); }
+    }else if(e.key === "ArrowUp"){
+      e.preventDefault();
+      if(suggestions.length){ activeIndex = (activeIndex-1+suggestions.length) % suggestions.length; paintSuggestions(); }
+    }else if(e.key === "Enter"){
+      e.preventDefault();
+      if(activeIndex >= 0 && suggestions[activeIndex]){
+        commentInput.value = suggestions[activeIndex];
+        suggestBox.classList.remove("open");
+        addEntry();
+      }
+    }else if(e.key === "Escape"){
+      suggestBox.classList.remove("open");
+    }
+  });
+  suggestBox.addEventListener("click", e=>{
+    const item = e.target.closest(".suggest-item");
+    if(!item) return;
+    commentInput.value = suggestions[Number(item.dataset.idx)];
+    suggestBox.classList.remove("open");
+    addEntry();
+  });
+  document.addEventListener("click", e=>{
+    if(!e.target.closest(".ticket-field.comment")) suggestBox.classList.remove("open");
+  });
+  phoneInput.addEventListener("keydown", e=>{
+    if(e.key === "Enter"){ e.preventDefault(); commentInput.focus(); }
+  });
+
+  function upsertComment(phone, tag, isFollowUp){
+    const now = Date.now();
+    let entry = findEntry(phone);
+    if(!entry){
+      entry = { phone, createdAt: now, updatedAt: now, comments: [] };
+      entries.push(entry);
+    }
+    const c = { tag, ts: now };
+    if(isFollowUp) c.followUp = true;
+    entry.comments.push(c);
+    entry.updatedAt = now;
+    saveEntries(entries);
+    return entry;
+  }
+
+  function addEntry(){
+    const phone = normPhone(phoneInput.value);
+    const tagText = commentInput.value.trim();
+    if(!phone){ phoneInput.focus(); return; }
+    const validTag = findValidTag(tagText);
+    if(!validTag){ commentInput.focus(); renderSuggestions(); return; }
+
+    upsertComment(phone, validTag, false);
+    openPhone = phone;
+    phoneInput.value = "";
+    commentInput.value = "";
+    suggestBox.classList.remove("open");
+    renderAll();
+    phoneInput.focus();
+  }
+  document.getElementById("addBtn").addEventListener("click", addEntry);
+
+  /* ============================================================
+     FOLLOW-UP TAB — top quick-entry ticket (same comment list,
+     but always tags the new comment as a follow-up)
+  ============================================================ */
+  const followPhoneInput = document.getElementById("followPhoneInput");
+  const followTopCommentInput = document.getElementById("followTopCommentInput");
+  const followTopSuggestBox = document.getElementById("followTopSuggestBox");
+  let followTopSuggestions = [];
+  let followTopActiveIndex = -1;
+
+  function renderFollowTopSuggestions(){
+    const q = followTopCommentInput.value.trim();
+    if(!q){
+      followTopSuggestBox.classList.remove("open");
+      followTopSuggestBox.innerHTML = "";
+      followTopSuggestions = [];
+      return;
+    }
+    followTopSuggestions = COMMENT_TAGS.filter(tag => matchTags(q, tag));
+    followTopActiveIndex = followTopSuggestions.length ? 0 : -1;
+    paintFollowTopSuggestions();
+  }
+  function paintFollowTopSuggestions(){
+    if(!followTopSuggestions.length){
+      followTopSuggestBox.innerHTML = `<div class="suggest-empty">No matching comment. Try different words.</div>`;
+      followTopSuggestBox.classList.add("open");
+      return;
+    }
+    followTopSuggestBox.innerHTML = followTopSuggestions.map((tag,i)=>
+      `<div class="suggest-item${i===followTopActiveIndex?" active":""}" data-idx="${i}">${escapeHtml(tag)}</div>`
+    ).join("");
+    followTopSuggestBox.classList.add("open");
+  }
+  function addFollowTopEntry(){
+    const phone = normPhone(followPhoneInput.value);
+    const tagText = followTopCommentInput.value.trim();
+    if(!phone){ followPhoneInput.focus(); return; }
+    const validTag = findValidTag(tagText);
+    if(!validTag){ followTopCommentInput.focus(); renderFollowTopSuggestions(); return; }
+
+    upsertComment(phone, validTag, true);
+    followOpenPhone = phone;
+    followPhoneInput.value = "";
+    followTopCommentInput.value = "";
+    followTopSuggestBox.classList.remove("open");
+    renderAll();
+    followPhoneInput.focus();
+  }
+  followTopCommentInput.addEventListener("input", renderFollowTopSuggestions);
+  followTopCommentInput.addEventListener("focus", renderFollowTopSuggestions);
+  followTopCommentInput.addEventListener("keydown", e=>{
+    if(!followTopSuggestBox.classList.contains("open")) return;
+    if(e.key === "ArrowDown"){
+      e.preventDefault();
+      if(followTopSuggestions.length){ followTopActiveIndex = (followTopActiveIndex+1) % followTopSuggestions.length; paintFollowTopSuggestions(); }
+    }else if(e.key === "ArrowUp"){
+      e.preventDefault();
+      if(followTopSuggestions.length){ followTopActiveIndex = (followTopActiveIndex-1+followTopSuggestions.length) % followTopSuggestions.length; paintFollowTopSuggestions(); }
+    }else if(e.key === "Enter"){
+      e.preventDefault();
+      if(followTopActiveIndex >= 0 && followTopSuggestions[followTopActiveIndex]){
+        followTopCommentInput.value = followTopSuggestions[followTopActiveIndex];
+        followTopSuggestBox.classList.remove("open");
+        addFollowTopEntry();
+      }
+    }else if(e.key === "Escape"){
+      followTopSuggestBox.classList.remove("open");
+    }
+  });
+  followTopSuggestBox.addEventListener("click", e=>{
+    const item = e.target.closest(".suggest-item");
+    if(!item) return;
+    followTopCommentInput.value = followTopSuggestions[Number(item.dataset.idx)];
+    followTopSuggestBox.classList.remove("open");
+    addFollowTopEntry();
+  });
+  document.addEventListener("click", e=>{
+    if(!e.target.closest("#followTopCommentInput") && !e.target.closest("#followTopSuggestBox")){
+      followTopSuggestBox.classList.remove("open");
+    }
+  });
+  followPhoneInput.addEventListener("keydown", e=>{
+    if(e.key === "Enter"){ e.preventDefault(); followTopCommentInput.focus(); }
+  });
+  document.getElementById("followTopAddBtn").addEventListener("click", addFollowTopEntry);
+
+  /* ---------------- filters (Log + Analysis) ---------------- */
+  function matchesFilters(c){
+    const tagFilter = filterTag.value;
+    const hourVal = hourFilter.value;
+    if(tagFilter && c.tag !== tagFilter) return false;
+    if(hourVal !== "" && new Date(c.ts).getHours() !== Number(hourVal)) return false;
+    return true;
+  }
+
+  document.getElementById("clearFiltersBtn").addEventListener("click", ()=>{
+    filterTag.value = "";
+    hourFilter.value = "";
+    renderAll();
+  });
+  filterTag.addEventListener("change", renderAll);
+  hourFilter.addEventListener("change", renderAll);
+
+  /* ---------------- Log manifest rendering ---------------- */
+  const manifestEl = document.getElementById("manifest");
+  const metaLine = document.getElementById("metaLine");
+
+  function latestTag(entry){ return entry.comments[entry.comments.length - 1]; }
+
+  const COPY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+  const CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>';
+
+  function copyToClipboard(text, btn){
+    const done = ()=>{
+      if(!btn) return;
+      const original = btn.innerHTML;
+      btn.innerHTML = CHECK_ICON;
+      btn.classList.add("copied");
+      setTimeout(()=>{ btn.innerHTML = original; btn.classList.remove("copied"); }, 1100);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text, done));
+    }else{
+      fallbackCopy(text, done);
+    }
+  }
+  function fallbackCopy(text, done){
+    try{
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      done();
+    }catch(e){
+      alert("Could not copy automatically — here it is to copy by hand:\n\n"+text);
+    }
+  }
+
+  /* number each follow-up comment in chronological order, so the badge
+     reads "Follow-up 1", "Follow-up 2" etc. */
+  function withFollowUpNumbers(entry){
+    let n = 0;
+    return entry.comments.map(c=>{
+      if(c.followUp) n++;
+      return { ...c, fuNumber: c.followUp ? n : null };
+    });
+  }
+
+  function timelineHtml(entry, delAttr){
+    return withFollowUpNumbers(entry).slice().reverse().map((c,ridx)=>{
+      const realIdx = entry.comments.length - 1 - ridx;
+      return `<div class="timeline-item">
+        <span class="timeline-ts">${fmtDate(c.ts)}</span>
+        <span class="timeline-tag">${escapeHtml(c.tag)}</span>
+        ${c.followUp ? `<span class="fu-badge">Follow-up ${c.fuNumber}</span>` : ""}
+        <button class="timeline-del" data-${delAttr}-phone="${escapeHtml(entry.phone)}" data-${delAttr}-idx="${realIdx}">Remove</button>
+      </div>`;
+    }).join("");
+  }
+
+  function renderManifest(){
+    let visible = entries.filter(e => e.comments.some(matchesFilters));
+    visible.sort((a,b)=> b.updatedAt - a.updatedAt);
+
+    const activeFilters = filterTag.value || hourFilter.value !== "";
+    metaLine.innerHTML = `${entries.length} customer${entries.length===1?"":"s"} on file · ${visible.length} shown` +
+      (activeFilters ? ` <span style="color:var(--accent)">· filters active</span>` : "");
+
+    if(!visible.length){
+      manifestEl.innerHTML = `<div class="empty-state">
+        <strong>${entries.length ? "No matches" : "No calls logged yet"}</strong>
+        ${entries.length ? "Try a different comment or hour." : "Add your first customer above to start the ledger."}
+      </div>`;
+      return;
+    }
+
+    manifestEl.innerHTML = visible.map(e=>{
+      const last = latestTag(e);
+      const isOpen = e.phone === openPhone;
+      return `
+      <div class="row${isOpen?" open":""}" data-phone="${escapeHtml(e.phone)}">
+        <div class="row-main" data-toggle="${escapeHtml(e.phone)}">
+          <svg class="row-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
+          <span class="row-phone">${escapeHtml(e.phone)}</span>
+          <button class="copy-btn" data-copy-phone="${escapeHtml(e.phone)}" title="Copy number">${COPY_ICON}</button>
+          <span class="row-tag" title="${escapeHtml(last.tag)}">${escapeHtml(last.tag)}</span>
+          <span class="row-count">${e.comments.length} comment${e.comments.length===1?"":"s"}</span>
+          <span class="row-time">${fmtDate(e.updatedAt)}</span>
+        </div>
+        <div class="row-detail">
+          ${timelineHtml(e, "del")}
+          <div class="row-actions">
+            <button class="btn danger" data-del-customer="${escapeHtml(e.phone)}">Delete customer</button>
+          </div>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  manifestEl.addEventListener("click", e=>{
+    const copyBtn = e.target.closest("[data-copy-phone]");
+    if(copyBtn){
+      e.stopPropagation();
+      copyToClipboard(copyBtn.dataset.copyPhone, copyBtn);
+      return;
+    }
+    const toggle = e.target.closest("[data-toggle]");
+    const delItem = e.target.closest("[data-del-phone]");
+    const delCust = e.target.closest("[data-del-customer]");
+
+    if(delItem){
+      const phone = delItem.dataset.delPhone;
+      const idx = Number(delItem.dataset.delIdx);
+      const entry = findEntry(phone);
+      if(entry){
+        entry.comments.splice(idx,1);
+        if(!entry.comments.length){
+          entries = entries.filter(x=>x.phone!==phone);
+          if(openPhone===phone) openPhone=null;
+          if(followOpenPhone===phone) followOpenPhone=null;
+        }
+        saveEntries(entries);
+        renderAll();
+      }
+      return;
+    }
+    if(delCust){
+      const phone = delCust.dataset.delCustomer;
+      if(confirm(`Delete all history for ${phone}? This can't be undone.`)){
+        entries = entries.filter(x=>x.phone!==phone);
+        if(openPhone===phone) openPhone=null;
+        if(followOpenPhone===phone) followOpenPhone=null;
+        saveEntries(entries);
+        renderAll();
+      }
+      return;
+    }
+    if(toggle){
+      const phone = toggle.dataset.toggle;
+      openPhone = (openPhone === phone) ? null : phone;
+      renderManifest();
+    }
+  });
+
+  /* ============================================================
+     FOLLOW-UP TAB
+  ============================================================ */
+  const followManifestEl = document.getElementById("followManifest");
+  const followMetaLine = document.getElementById("followMetaLine");
+  let followSuggestions = [];
+  let followActiveIndex = -1;
+
+  followFilterTag.addEventListener("change", renderFollowUp);
+
+  function renderFollowUp(){
+    const tagFilter = followFilterTag.value;
+    let visible = entries.filter(e => !tagFilter || e.comments.some(c=>c.tag===tagFilter));
+    visible.sort((a,b)=> b.updatedAt - a.updatedAt);
+
+    followMetaLine.textContent = tagFilter
+      ? `${visible.length} customer${visible.length===1?"":"s"} said "${tagFilter}"`
+      : `${entries.length} customer${entries.length===1?"":"s"} on file · pick a comment above to narrow who to call back`;
+
+    if(!visible.length){
+      followManifestEl.innerHTML = `<div class="empty-state">
+        <strong>${entries.length ? "No matches" : "No calls logged yet"}</strong>
+        ${entries.length ? "Try a different comment." : "Add a customer on the Log tab first."}
+      </div>`;
+      return;
+    }
+
+    followManifestEl.innerHTML = visible.map(e=>{
+      const last = latestTag(e);
+      const isOpen = e.phone === followOpenPhone;
+      return `
+      <div class="row${isOpen?" open":""}" data-phone="${escapeHtml(e.phone)}">
+        <div class="row-main" data-f-toggle="${escapeHtml(e.phone)}">
+          <svg class="row-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
+          <span class="row-phone">${escapeHtml(e.phone)}</span>
+          <button class="copy-btn" data-copy-phone="${escapeHtml(e.phone)}" title="Copy number">${COPY_ICON}</button>
+          <span class="row-tag" title="${escapeHtml(last.tag)}">${escapeHtml(last.tag)}</span>
+          <span class="row-count">${e.comments.length} comment${e.comments.length===1?"":"s"}</span>
+          <span class="row-time">${fmtDate(e.updatedAt)}</span>
+        </div>
+        ${isOpen ? `
+        <div class="row-detail">
+          ${timelineHtml(e, "f-del")}
+          <div class="follow-add">
+            <div class="follow-add-field">
+              <input type="text" class="follow-comment-input" id="followInput-${escapeHtml(e.phone)}" data-phone="${escapeHtml(e.phone)}" placeholder="Search a comment to log this follow-up…" autocomplete="off">
+              <div class="suggest-box" id="followSuggest-${escapeHtml(e.phone)}"></div>
+            </div>
+            <button class="btn primary" data-f-add-btn="${escapeHtml(e.phone)}">Log follow-up</button>
+          </div>
+          <div class="row-actions">
+            <button class="btn danger" data-f-del-customer="${escapeHtml(e.phone)}">Delete customer</button>
+          </div>
+        </div>` : ""}
+      </div>`;
+    }).join("");
+
+    if(followOpenPhone){
+      const input = document.getElementById("followInput-"+CSS.escape(followOpenPhone));
+      if(input) input.focus();
+    }
+  }
+
+  function renderFollowSuggestBox(phone){
+    const box = document.getElementById("followSuggest-"+CSS.escape(phone));
+    if(!box) return;
+    if(!followSuggestions.length){
+      box.innerHTML = `<div class="suggest-empty">No matching comment. Try different words.</div>`;
+      box.classList.add("open");
+      return;
+    }
+    box.innerHTML = followSuggestions.map((tag,i)=>
+      `<div class="suggest-item${i===followActiveIndex?" active":""}" data-idx="${i}">${escapeHtml(tag)}</div>`
+    ).join("");
+    box.classList.add("open");
+  }
+
+  function logFollowUp(phone, tagText){
+    const validTag = findValidTag(tagText);
+    const input = document.getElementById("followInput-"+CSS.escape(phone));
+    if(!validTag){
+      if(input){
+        followSuggestions = COMMENT_TAGS.filter(t=>matchTags(tagText,t));
+        followActiveIndex = followSuggestions.length ? 0 : -1;
+        renderFollowSuggestBox(phone);
+        input.focus();
+      }
+      return;
+    }
+    upsertComment(phone, validTag, true);
+    followOpenPhone = phone;
+    followSuggestions = [];
+    followActiveIndex = -1;
+    renderAll();
+  }
+
+  followManifestEl.addEventListener("click", e=>{
+    const copyBtn = e.target.closest("[data-copy-phone]");
+    if(copyBtn){
+      e.stopPropagation();
+      copyToClipboard(copyBtn.dataset.copyPhone, copyBtn);
+      return;
+    }
+    const toggle = e.target.closest("[data-f-toggle]");
+    const delItem = e.target.closest("[data-f-del-phone]");
+    const delCust = e.target.closest("[data-f-del-customer]");
+    const addBtn = e.target.closest("[data-f-add-btn]");
+    const suggestItem = e.target.closest(".suggest-item");
+
+    if(suggestItem && suggestItem.closest(".follow-add-field")){
+      const phone = suggestItem.closest(".follow-add-field").querySelector(".follow-comment-input").dataset.phone;
+      logFollowUp(phone, followSuggestions[Number(suggestItem.dataset.idx)]);
+      return;
+    }
+    if(addBtn){
+      const phone = addBtn.dataset.fAddBtn;
+      const input = document.getElementById("followInput-"+CSS.escape(phone));
+      logFollowUp(phone, input ? input.value : "");
+      return;
+    }
+    if(delItem){
+      const phone = delItem.dataset.fDelPhone;
+      const idx = Number(delItem.dataset.fDelIdx);
+      const entry = findEntry(phone);
+      if(entry){
+        entry.comments.splice(idx,1);
+        if(!entry.comments.length){
+          entries = entries.filter(x=>x.phone!==phone);
+          if(followOpenPhone===phone) followOpenPhone=null;
+          if(openPhone===phone) openPhone=null;
+        }
+        saveEntries(entries);
+        renderAll();
+      }
+      return;
+    }
+    if(delCust){
+      const phone = delCust.dataset.fDelCustomer;
+      if(confirm(`Delete all history for ${phone}? This can't be undone.`)){
+        entries = entries.filter(x=>x.phone!==phone);
+        if(followOpenPhone===phone) followOpenPhone=null;
+        if(openPhone===phone) openPhone=null;
+        saveEntries(entries);
+        renderAll();
+      }
+      return;
+    }
+    if(toggle){
+      const phone = toggle.dataset.fToggle;
+      followOpenPhone = (followOpenPhone === phone) ? null : phone;
+      followSuggestions = [];
+      followActiveIndex = -1;
+      renderFollowUp();
+    }
+  });
+
+  followManifestEl.addEventListener("input", e=>{
+    if(!e.target.matches(".follow-comment-input")) return;
+    const phone = e.target.dataset.phone;
+    const q = e.target.value.trim();
+    if(!q){
+      followSuggestions = [];
+      const box = document.getElementById("followSuggest-"+CSS.escape(phone));
+      if(box){ box.classList.remove("open"); box.innerHTML=""; }
+      return;
+    }
+    followSuggestions = COMMENT_TAGS.filter(tag => matchTags(q, tag));
+    followActiveIndex = followSuggestions.length ? 0 : -1;
+    renderFollowSuggestBox(phone);
+  });
+
+  followManifestEl.addEventListener("keydown", e=>{
+    if(!e.target.matches(".follow-comment-input")) return;
+    const phone = e.target.dataset.phone;
+    const box = document.getElementById("followSuggest-"+CSS.escape(phone));
+    if(!box || !box.classList.contains("open")) {
+      if(e.key === "Enter"){ e.preventDefault(); logFollowUp(phone, e.target.value); }
+      return;
+    }
+    if(e.key === "ArrowDown"){
+      e.preventDefault();
+      if(followSuggestions.length){ followActiveIndex = (followActiveIndex+1)%followSuggestions.length; renderFollowSuggestBox(phone); }
+    }else if(e.key === "ArrowUp"){
+      e.preventDefault();
+      if(followSuggestions.length){ followActiveIndex = (followActiveIndex-1+followSuggestions.length)%followSuggestions.length; renderFollowSuggestBox(phone); }
+    }else if(e.key === "Enter"){
+      e.preventDefault();
+      if(followActiveIndex>=0 && followSuggestions[followActiveIndex]) logFollowUp(phone, followSuggestions[followActiveIndex]);
+    }else if(e.key === "Escape"){
+      box.classList.remove("open");
+    }
+  });
+
+  document.addEventListener("click", e=>{
+    if(!e.target.closest(".follow-add-field")){
+      document.querySelectorAll("#tab-followup .suggest-box").forEach(b=>b.classList.remove("open"));
+    }
+  });
+
+  /* ---------------- export / import / clear ---------------- */
+  document.getElementById("exportBtn").addEventListener("click", ()=>{
+    if(!entries.length){ alert("There's nothing to export yet."); return; }
+    const payload = { exportedAt: new Date().toISOString(), count: entries.length, entries };
+    const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `call-log-${todayStr()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    setTimeout(()=>{
+      if(confirm(`Exported ${entries.length} customer record(s) to file.\n\nClear this device's local storage now to free up space?`)){
+        entries = [];
+        openPhone = null; followOpenPhone = null;
+        saveEntries(entries);
+        renderAll();
+      }
+    }, 300);
+  });
+
+  const importBtn = document.getElementById("importBtn");
+  const importFile = document.getElementById("importFile");
+  importBtn.addEventListener("click", ()=> importFile.click());
+  importFile.addEventListener("change", ()=>{
+    const file = importFile.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const data = JSON.parse(reader.result);
+        const incoming = Array.isArray(data) ? data : (Array.isArray(data.entries) ? data.entries : null);
+        if(!incoming) throw new Error("Unexpected file format");
+
+        let added = 0, merged = 0;
+        incoming.forEach(inc=>{
+          if(!inc || !inc.phone || !Array.isArray(inc.comments)) return;
+          const phone = normPhone(inc.phone);
+          let entry = findEntry(phone);
+          if(!entry){
+            entry = { phone, createdAt: inc.createdAt || Date.now(), updatedAt: inc.updatedAt || Date.now(), comments: [] };
+            entries.push(entry);
+            added++;
+          }else{
+            merged++;
+          }
+          inc.comments.forEach(c=>{
+            if(!c || !c.tag || !c.ts) return;
+            const dup = entry.comments.some(existing => existing.tag===c.tag && existing.ts===c.ts);
+            if(!dup) entry.comments.push({tag:c.tag, ts:c.ts, followUp: !!c.followUp});
+          });
+          entry.comments.sort((a,b)=>a.ts-b.ts);
+          entry.updatedAt = Math.max(entry.updatedAt, ...entry.comments.map(c=>c.ts));
+          entry.createdAt = Math.min(entry.createdAt, ...entry.comments.map(c=>c.ts));
+        });
+
+        saveEntries(entries);
+        renderAll();
+        alert(`Import complete.\nNew customers: ${added}\nMerged into existing: ${merged}\n\nUse the Hour filter, Follow-up tab, or Analysis tab to explore this data.`);
+      }catch(err){
+        alert("Could not read that file. Make sure it's a Call Ledger export.");
+      }
+      importFile.value = "";
+    };
+    reader.readAsText(file);
+  });
+
+  document.getElementById("clearBtn").addEventListener("click", ()=>{
+    if(!entries.length){ alert("There's nothing to clear."); return; }
+    if(confirm(`This will permanently delete all ${entries.length} customer record(s) from this device. Export first if you need a copy.\n\nContinue?`)){
+      entries = [];
+      openPhone = null; followOpenPhone = null;
+      saveEntries(entries);
+      renderAll();
+    }
+  });
+
+  /* ---------------- tabs ---------------- */
+  document.querySelectorAll(".tab-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll("section").forEach(s=>s.classList.remove("visible"));
+      document.getElementById("tab-"+btn.dataset.tab).classList.add("visible");
+      if(btn.dataset.tab === "analysis") renderAnalysis();
+      if(btn.dataset.tab === "followup") renderFollowUp();
+    });
+  });
+
+  /* ---------------- analysis ---------------- */
+  const statGrid = document.getElementById("statGrid");
+  const barList = document.getElementById("barList");
+  const hourChart = document.getElementById("hourChart");
+  const hourSub = document.getElementById("hourSub");
+  const followUpAnalysisList = document.getElementById("followUpAnalysisList");
+  const followAnalysisSub = document.getElementById("followAnalysisSub");
+
+  function renderAnalysis(){
+    const allComments = entries.flatMap(e=>e.comments).filter(matchesFilters);
+
+    const totalCustomers = new Set(entries.filter(e=>e.comments.some(matchesFilters)).map(e=>e.phone)).size;
+    const totalComments = allComments.length;
+    const today = allComments.filter(c=>isToday(c.ts)).length;
+
+    const counts = {};
+    COMMENT_TAGS.forEach(t=>counts[t]=0);
+    allComments.forEach(c=>{ counts[c.tag] = (counts[c.tag]||0) + 1; });
+    const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+    const topTag = sorted.find(([,n])=>n>0);
+
+    statGrid.innerHTML = `
+      <div class="stat-card"><div class="num">${totalCustomers}</div><div class="lbl">Customers matching</div></div>
+      <div class="stat-card"><div class="num">${totalComments}</div><div class="lbl">Comments logged</div></div>
+      <div class="stat-card"><div class="num">${today}</div><div class="lbl">Logged today</div></div>
+      <div class="stat-card"><div class="num" style="font-size:1.05rem; line-height:1.3;">${topTag ? escapeHtml(topTag[0]) : "—"}</div><div class="lbl">Most common comment</div></div>
+    `;
+
+    const hourComments = entries.flatMap(e=>e.comments).filter(c=>{
+      const tagFilterVal = filterTag.value;
+      return !tagFilterVal || c.tag === tagFilterVal;
+    });
+    const hourCounts = new Array(24).fill(0);
+    hourComments.forEach(c=>{ hourCounts[new Date(c.ts).getHours()]++; });
+    const maxHour = Math.max(1, ...hourCounts);
+    const selectedHour = hourFilter.value;
+
+    hourSub.textContent = selectedHour !== ""
+      ? `Showing ${hourLabel(Number(selectedHour))} only — ${totalComments} comment${totalComments===1?"":"s"} logged in that hour. Click the bar again, or Reset, to see all hours.`
+      : `Showing all hours — ${hourComments.length} comment${hourComments.length===1?"":"s"} total. Click any bar to zoom into that hour.`;
+
+    hourChart.innerHTML = hourCounts.map((n,h)=>{
+      const pct = Math.max(2, Math.round(n/maxHour*100));
+      const isActive = selectedHour !== "" && Number(selectedHour) === h;
+      return `<div class="hour-col${isActive?" active-hour":""}" data-hour="${h}" data-tip="${hourLabel(h)}: ${n}">
+        <div class="hour-bar" style="height:${pct}%"></div>
+        <div class="hour-label">${hourLabel(h).replace(" ","")}</div>
+      </div>`;
+    }).join("");
+
+    const used = sorted.filter(([,n])=>n>0);
+    if(!used.length){
+      barList.innerHTML = `<div class="suggest-empty" style="padding:0;">No comments match the current filters.</div>`;
+    }else{
+      const max = used[0][1];
+      barList.innerHTML = used.map(([tag,n])=>`
+        <div class="bar-row">
+          <div class="bar-label"><span>${escapeHtml(tag)}</span><span class="n">${n}</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(n/max*100).toFixed(1)}%"></div></div>
+        </div>
+      `).join("");
+    }
+
+    /* follow-ups taken, respecting the same Comment/Hour filters above */
+    const followMap = new Map();
+    entries.forEach(e=>{
+      e.comments.forEach(c=>{
+        if(c.followUp && matchesFilters(c)){
+          const prev = followMap.get(e.phone);
+          if(!prev || c.ts > prev.ts) followMap.set(e.phone, {tag:c.tag, ts:c.ts, count:(prev?prev.count:0)+1});
+          else followMap.set(e.phone, {...prev, count:prev.count+1});
+        }
+      });
+    });
+    const followRows = Array.from(followMap.entries()).sort((a,b)=>b[1].ts - a[1].ts);
+    followAnalysisSub.textContent = followRows.length
+      ? `${followRows.length} customer${followRows.length===1?"":"s"} followed up on, ${Array.from(followMap.values()).reduce((s,v)=>s+v.count,0)} follow-up call${followRows.length===1?"":"s"} total.`
+      : "None yet — log a follow-up from the Follow-up tab and it'll show up here.";
+    followUpAnalysisList.innerHTML = followRows.length ? followRows.map(([phone,info])=>`
+      <div class="follow-analysis-row">
+        <span class="fa-phone">${escapeHtml(phone)}<button class="copy-btn" data-copy-phone="${escapeHtml(phone)}" title="Copy number">${COPY_ICON}</button></span>
+        <span class="fa-count">${info.count} follow-up${info.count===1?"":"s"}</span>
+        <span class="fa-tag" title="${escapeHtml(info.tag)}">${escapeHtml(info.tag)}</span>
+        <span class="fa-time">${fmtDate(info.ts)}</span>
+      </div>
+    `).join("") : "";
+
+    /* keep the numbers around so the Copy report button can build clean text
+       from exactly what's on screen right now */
+    lastAnalysis = {
+      totalCustomers, totalComments, today, used,
+      followUpTotal: Array.from(followMap.values()).reduce((s,v)=>s+v.count,0),
+      followRows,
+      filterTagVal: filterTag.value,
+      filterHourVal: hourFilter.value
+    };
+  }
+  let lastAnalysis = null;
+
+  document.getElementById("copyReportBtn").addEventListener("click", (e)=>{
+    if(!lastAnalysis) return;
+    const a = lastAnalysis;
+    const lines = [];
+    lines.push(`CALL LEDGER REPORT`);
+    lines.push(new Date().toLocaleString(undefined,{weekday:"long", day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit"}));
+    lines.push(`Filter: ${a.filterTagVal ? a.filterTagVal : "All comments"} · ${a.filterHourVal !== "" ? hourLabel(Number(a.filterHourVal)) : "All hours"}`);
+    lines.push("");
+    lines.push(`Customers matching: ${a.totalCustomers}`);
+    lines.push(`Comments logged: ${a.totalComments}`);
+    lines.push(`Logged today: ${a.today}`);
+    lines.push("");
+    lines.push(`COMMENT BREAKDOWN`);
+    if(a.used.length){
+      a.used.forEach(([tag,n])=> lines.push(`- ${tag}: ${n}`));
+    }else{
+      lines.push("- No comments match the current filters.");
+    }
+    lines.push("");
+    lines.push(`FOLLOW-UPS TAKEN (${a.followUpTotal})`);
+    if(a.followRows.length){
+      a.followRows.forEach(([phone,info])=> lines.push(`- ${phone}: ${info.count} follow-up${info.count===1?"":"s"}, last "${info.tag}" on ${fmtDate(info.ts)}`));
+    }else{
+      lines.push("- None yet.");
+    }
+    copyToClipboard(lines.join("\n"), e.currentTarget);
+  });
+
+  followUpAnalysisList.addEventListener("click", e=>{
+    const copyBtn = e.target.closest("[data-copy-phone]");
+    if(copyBtn) copyToClipboard(copyBtn.dataset.copyPhone, copyBtn);
+  });
+
+  hourChart.addEventListener("click", e=>{
+    const col = e.target.closest("[data-hour]");
+    if(!col) return;
+    const h = col.dataset.hour;
+    hourFilter.value = (hourFilter.value === h) ? "" : h;
+    renderAll();
+  });
+
+  /* ---------------- render everything ---------------- */
+  function renderAll(){
+    renderManifest();
+    renderFollowUp();
+    renderAnalysis();
+  }
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
